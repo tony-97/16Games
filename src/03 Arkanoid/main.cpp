@@ -1,76 +1,84 @@
-#include <SFML/Graphics.hpp>
-#include <time.h>
-using namespace sf;
+#include <raylib.h>
+
+#include <cstdlib>
+#include <ctime>
+
+#include <utility.hpp>
 
 int main()
 {
-    srand(time(0));
+    std::srand(time(0));
 
-    RenderWindow app(VideoMode(520, 450), "Arkanoid!");
-    app.setFramerateLimit(60);
+    InitWindow(520, 450, "Arkanoid!");
+    SetTargetFPS(60);
 
-    Texture t1,t2,t3,t4;
-    t1.loadFromFile("images/block01.png");
-    t2.loadFromFile("images/background.jpg");
-    t3.loadFromFile("images/ball.png");
-    t4.loadFromFile("images/paddle.png");
+    const auto t1 { LoadTexture("images/block01.png")    };
+    const auto t2 { LoadTexture("images/background.jpg") };
+    const auto t3 { LoadTexture("images/ball.png")       };
+    const auto t4 { LoadTexture("images/paddle.png")     };
 
     Sprite sBackground(t2), sBall(t3), sPaddle(t4);
-    sPaddle.setPosition(300,440);
+    sPaddle.set_position(300, 440);
 
     Sprite block[1000];
 
     int n=0;
     for (int i=1;i<=10;i++)
-    for (int j=1;j<=10;j++)
-      {
-         block[n].setTexture(t1);
-         block[n].setPosition(i*43,j*20);
-         n++;
-      }
+        for (int j=1;j<=10;j++)
+        {
+            block[n].set_texture(t1);
+            block[n].set_position(i * 43, j * 20);
+            n++;
+        }
 
-    float dx=6, dy=5;
-    float x=300, y=300;
+    float dx = 6, dy = 5;
+    float x = 300, y = 300;
 
-    while (app.isOpen())
+    while (!WindowShouldClose())
     {
-       Event e;
-       while (app.pollEvent(e))
-       {
-         if (e.type == Event::Closed)
-             app.close();
-       }
+        x += dx;
+        for (int i=0;i<n;i++)
+            if (CheckCollisionRecs({x + 3, y + 3, 6, 6}, block[i].get_bounds())) 
+            {
+                block[i].set_position(-100,0);
+                dx = -dx;
+            }
 
-    x+=dx;
-    for (int i=0;i<n;i++)
-        if ( FloatRect(x+3,y+3,6,6).intersects(block[i].getGlobalBounds()) ) 
-             {block[i].setPosition(-100,0); dx=-dx;}
+        y += dy;
+        for (int i=0;i<n;i++)
+            if (CheckCollisionRecs({x + 3, y + 3, 6, 6}, block[i].get_bounds())) 
+            {
+                block[i].set_position(-100,0);
+                dy = -dy;
+            }
 
-    y+=dy;
-    for (int i=0;i<n;i++)
-        if ( FloatRect(x+3,y+3,6,6).intersects(block[i].getGlobalBounds()) ) 
-             {block[i].setPosition(-100,0); dy=-dy;}
+        if (x<0 || x>520)  dx=-dx;
+        if (y<0 || y>450)  dy=-dy;
 
-    if (x<0 || x>520)  dx=-dx;
-    if (y<0 || y>450)  dy=-dy;
+        if (IsKeyDown(KEY_RIGHT))  sPaddle.move(6, 0);
+        if (IsKeyDown(KEY_LEFT)) sPaddle.move(-6, 0);
 
-    if (Keyboard::isKeyPressed(Keyboard::Right)) sPaddle.move(6,0);
-    if (Keyboard::isKeyPressed(Keyboard::Left)) sPaddle.move(-6,0);
+        if (CheckCollisionRecs({x, y, 12, 12}, sPaddle.get_bounds()))
+            dy = -(rand() % 5 + 2);
 
-    if ( FloatRect(x,y,12,12).intersects(sPaddle.getGlobalBounds()) ) dy=-(rand()%5+2);
+        sBall.set_position(x,y);
 
-    sBall.setPosition(x,y);
+        BeginDrawing();
+        ClearBackground(RAYWHITE);
+        draw(sBackground);
+        draw(sBall);
+        draw(sPaddle);
 
-    app.clear();
-    app.draw(sBackground);
-    app.draw(sBall);
-    app.draw(sPaddle);
+        for (int i=0;i<n;i++)
+            draw(block[i]);
 
-    for (int i=0;i<n;i++)
-     app.draw(block[i]);
-
-    app.display();
+        EndDrawing();
     }
 
-  return 0;
+    UnloadTexture(t1);
+    UnloadTexture(t2);
+    UnloadTexture(t3);
+    UnloadTexture(t4);
+    CloseWindow();
+    return 0;
 }
