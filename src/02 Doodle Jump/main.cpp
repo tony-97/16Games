@@ -1,75 +1,81 @@
-#include <SFML/Graphics.hpp>
-#include <time.h>
-using namespace sf;
+#include <iterator>
+#include <raylib.h>
+
+#include <cstdlib>
+#include <ctime>
+
+#include <array>
+#include <algorithm>
 
 struct point
-{ int x,y;};
+{
+    int x {  };
+    int y {  };
+};
 
 int main()
 {
-    srand(time(0));
+    std::srand(time(0));
 
-    RenderWindow app(VideoMode(400, 533), "Doodle Game!");
-    app.setFramerateLimit(60);
+    constexpr int screen_width  = 400;
+    constexpr int screen_height = 533;
+    InitWindow(screen_width, screen_height, "Doodle Game!");
+    SetTargetFPS(60);
 
-    Texture t1,t2,t3;
-    t1.loadFromFile("images/background.png");
-    t2.loadFromFile("images/platform.png");
-    t3.loadFromFile("images/doodle.png");
+    Texture2D sBackground { LoadTexture("images/background.png") };
+    Texture2D sPlat { LoadTexture("images/platform.png")   };
+    Texture2D sPers { LoadTexture("images/doodle.png")     };
 
-    Sprite sBackground(t1), sPlat(t2), sPers(t3);
+    std::array<point, 7> plat;
 
-    point plat[20];
+    std::transform(plat.begin(), plat.end(), plat.begin(),
+            [](auto&&) -> point {
+                return { std::rand() % screen_width, std::rand() % screen_height };
+            });
 
-    for (int i=0;i<10;i++)
-      {
-       plat[i].x=rand()%400;
-       plat[i].y=rand()%533;
-      }
+    int x = 100;
+    int y = 100;
+    int h = 200;
+    //float dx = 0.0f;
+    float dy = 0.0f;
 
-    int x=100,y=100,h=200;
-    float dx=0,dy=0;
-
-    while (app.isOpen())
+    while (!WindowShouldClose())
     {
-        Event e;
-        while (app.pollEvent(e))
-        {
-            if (e.type == Event::Closed)
-                app.close();
-        }
+        if (IsKeyDown(KEY_RIGHT)) x += 3;
+        if (IsKeyDown(KEY_LEFT))  x -= 3;
 
-    if (Keyboard::isKeyPressed(Keyboard::Right)) x+=3;
-    if (Keyboard::isKeyPressed(Keyboard::Left)) x-=3;
+        dy += 0.2;
+        y  += dy;
+        if (y > 500) dy = -10;
 
-    dy+=0.2;
-    y+=dy;
-    if (y>500)  dy=-10;
+        if (y < h)
+            std::for_each(plat.begin(), plat.end(),
+                    [&](auto&& p){
+                        y = h;
+                        p.y = p.y - dy;
+                        if (p.y > screen_height) {
+                            p.y = 0;
+                            p.x = std::rand() % screen_width;
+                        }
+                    });
 
-    if (y<h)
-    for (int i=0;i<10;i++)
-    {
-      y=h;
-      plat[i].y=plat[i].y-dy;
-      if (plat[i].y>533) {plat[i].y=0; plat[i].x=rand()%400;}
+        std::for_each(plat.begin(), plat.end(), [&](const point& p) {
+                    if ((x + 50 > p.x)
+                     && (x + 20 < p.x + 68)
+                     && (y + 70 > p.y)
+                     && (y + 70 < p.y + 14)
+                     && (dy>0))  dy = - 10;
+                });
+
+        BeginDrawing();
+        DrawTexture(sBackground, 0, 0, RAYWHITE);
+        DrawTexture(sPers, x, y, RAYWHITE);
+        std::for_each(plat.begin(), plat.end(), [&](const point& p){
+                    DrawTexture(sPlat, p.x, p.y, RAYWHITE);
+                });
+        EndDrawing();
+
     }
-
-    for (int i=0;i<10;i++)
-     if ((x+50>plat[i].x) && (x+20<plat[i].x+68)
-      && (y+70>plat[i].y) && (y+70<plat[i].y+14) && (dy>0))  dy=-10;
-
-    sPers.setPosition(x,y);
-
-    app.draw(sBackground);
-    app.draw(sPers);
-    for (int i=0;i<10;i++)
-    {
-    sPlat.setPosition(plat[i].x,plat[i].y);
-    app.draw(sPlat);
-    }
-
-    app.display();
-}
 
     return 0;
 }
